@@ -199,10 +199,12 @@ async function loadData() {
 }
 
 // ======== 保存自己的状态 ========
-async function saveMyStatus(status) {
+async function saveMyStatus(status, note) {
     if (!myName) return;
     const today = getTodayStr();
-    const { data } = await _supabase.from('players').upsert({ name: myName, status, date: today }).select();
+    const payload = { name: myName, status, date: today };
+    if (note !== undefined) payload.note = note;
+    const { data } = await _supabase.from('players').upsert(payload).select();
     if (data) {
         const idx = players.findIndex(p => p.name === myName);
         if (idx >= 0) players[idx] = data[0];
@@ -355,6 +357,7 @@ function renderPlayerList(play, undecided, pass) {
     const sorted = [...play, ...undecided, ...pass];
     container.innerHTML = sorted.map(p => {
         const isMe = p.name === myName;
+        const noteHtml = p.status === 'pass' && p.note ? ` <span style=\"color:#888;font-size:12px;\">(${p.note})</span>` : '';
         const statusText = p.status === 'play' ? '来' : p.status === 'pass' ? '有事' : '还没定';
         const stCls = p.status === 'play' ? 'on' : p.status === 'pass' ? 'off' : 'undecided';
         const avCls = p.status === 'play' ? 'on' : p.status === 'pass' ? 'off' : 'undecided';
@@ -394,6 +397,10 @@ async function delPlayer(name) {
 // ======== 设置自己状态 ========
 function setStatus(status) {
     if (!myName) return;
+    if (status === 'pass') {
+        showNoteModal();
+        return;
+    }
     saveMyStatus(status);
     if (status === 'play') {
         setTimeout(() => showVoteModal(), 300);
@@ -464,6 +471,25 @@ async function confirmVote() {
     if (!sel) { closeVoteModal(); return; }
     await saveMyVote(sel.value);
     closeVoteModal();
+}
+
+// ======== 备注弹窗 ========
+function showNoteModal() {
+    document.getElementById('noteOverlay').classList.add('show');
+    document.getElementById('noteModal').classList.add('show');
+    document.getElementById('noteInput').value = '';
+    setTimeout(() => document.getElementById('noteInput').focus(), 100);
+}
+
+function closeNoteModal() {
+    document.getElementById('noteOverlay').classList.remove('show');
+    document.getElementById('noteModal').classList.remove('show');
+}
+
+async function confirmNote() {
+    const note = document.getElementById('noteInput').value.trim();
+    await saveMyStatus('pass', note || '');
+    closeNoteModal();
 }
 
 // ======== 修改名称 ========
