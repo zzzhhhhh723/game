@@ -120,7 +120,7 @@
     <div class="stats">
         <div class="card"><div class="num on" id="playCount">0</div><div class="label">来的</div></div>
         <div class="card"><div class="num off" id="passCount">0</div><div class="label">有事的</div></div>
-        <div class="card"><div class="num" id="totalCount">0</div><div class="label">兄弟总数</div></div>
+        <div class="card"><div class="num" id="totalCount">0</div><div class="label">总人数</div></div>
     </div>
 
     <div class="rank-section">
@@ -131,7 +131,7 @@
         <div id="rankList"></div>
     </div>
 
-    <div class="section-title">👥 兄弟们</div>
+    <div class="section-title">👥 名单</div>
     <div id="playerList"></div>
     <div class="footer">数据实时同步，刷新页面自动更新</div>
 </div>
@@ -301,7 +301,7 @@ function renderConclusion(playCount, passCount) {
     if (players.length === 0) {
         big.textContent = '等人齐';
         big.className = 'big';
-        sub.textContent = '输入名字加入';
+        sub.textContent = '输入名字加入队伍';
         return;
     }
 
@@ -348,7 +348,7 @@ function renderRank() {
 function renderPlayerList(play, undecided, pass) {
     const container = document.getElementById('playerList');
     if (players.length === 0) {
-        container.innerHTML = '<div class="empty">输入名字加入今晚的开黑队伍</div>';
+        container.innerHTML = '<div class="empty">输入名字加入队伍</div>';
         return;
     }
 
@@ -375,10 +375,20 @@ function renderPlayerList(play, undecided, pass) {
                         <button class="btn-play ${p.status === 'play' ? 'active' : ''}" onclick="setStatus('play')">来</button>
                         <button class="btn-pass ${p.status === 'pass' ? 'active' : ''}" onclick="setStatus('pass')">有事</button>
                     ` : ''}
+                    <button style="background:none;border:none;color:#555;font-size:14px;cursor:pointer;padding:4px;" onclick="delPlayer('${p.name}')" title="移出">✕</button>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+// ======== 删除玩家 ========
+async function delPlayer(name) {
+    if (!confirm(`把 ${name} 移出今天的名单？`)) return;
+    const today = getTodayStr();
+    await _supabase.from('players').delete().eq('name', name).eq('date', today);
+    players = players.filter(p => p.name !== name);
+    refresh();
 }
 
 // ======== 设置自己状态 ========
