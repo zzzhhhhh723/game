@@ -123,7 +123,12 @@
         <div class="card"><div class="num" id="totalCount">0</div><div class="label">总人数</div></div>
     </div>
 
-    <div class="rank-section">
+    <div class="unavail-section" id="unavailSection" style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:20px;display:none;">
+    <div class="title" style="font-size:15px;font-weight:bold;margin-bottom:12px;">😴 来不了的人</div>
+    <div id="unavailList"></div>
+</div>
+
+<div class="rank-section">
         <div class="title">
             <span>🎮 游戏投票排名</span>
             <button class="clear-btn" onclick="clearAllVotes()">清空投票</button>
@@ -276,6 +281,7 @@ function setMyName() {
 
 // ======== 界面渲染 ========
 function refresh() {
+    renderUnavail();
     document.getElementById('today').textContent = getTodayDisplay();
 
     const play = players.filter(p => p.status === 'play');
@@ -324,6 +330,24 @@ function renderConclusion(playCount, passCount) {
         big.className = 'big yes';
         sub.textContent = sorted.length ? `最高票游戏：${sorted[0][0]}（${sorted[0][1]}票）` : '还没定游戏';
     }
+}
+
+function renderUnavail() {
+    const section = document.getElementById('unavailSection');
+    const list = document.getElementById('unavailList');
+    const passPlayers = players.filter(p => p.status === 'pass');
+    if (passPlayers.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    list.innerHTML = passPlayers.map(p => {
+        const note = p.note ? `<span style="color:#888;font-size:12px;margin-left:6px;">- ${p.note}</span>` : '';
+        return '<div style="padding:6px 0;border-bottom:1px solid #222;font-size:14px;display:flex;justify-content:space-between;align-items:center;">' +
+            '<span>' + p.name + note + '</span>' +
+            (p.note ? '<button style="background:none;border:1px solid #555;color:#888;border-radius:12px;padding:2px 10px;font-size:12px;cursor:pointer;" onclick="rejectNote('' + p.name + '')">拒绝备注</button>' : '') +
+        '</div>';
+    }).join('');
 }
 
 function renderRank() {
@@ -474,6 +498,12 @@ async function confirmVote() {
 }
 
 // ======== 备注弹窗 ========
+
+async function skipNote() {
+    await saveMyStatus('pass', '');
+    closeNoteModal();
+}
+
 function showNoteModal() {
     document.getElementById('noteOverlay').classList.add('show');
     document.getElementById('noteModal').classList.add('show');
@@ -484,6 +514,15 @@ function showNoteModal() {
 function closeNoteModal() {
     document.getElementById('noteOverlay').classList.remove('show');
     document.getElementById('noteModal').classList.remove('show');
+}
+
+async function rejectNote(name) {
+    if (!confirm('确定拒绝 ' + name + ' 的备注？')) return;
+    const today = getTodayStr();
+    await _supabase.from('players').update({ note: '' }).eq('name', name).eq('date', today);
+    const p = players.find(x => x.name === name);
+    if (p) p.note = '';
+    refresh();
 }
 
 async function confirmNote() {
@@ -554,6 +593,8 @@ loadData();
     <div class="modal-actions">
         <button class="cancel" onclick="closeNoteModal()">取消</button>
         <button class="confirm" onclick="confirmNote()">确定</button>
+        <button class="cancel" onclick="skipNote()" style="background:#333;color:#888;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:14px;">拒绝备注</button>
+        <button class="cancel" onclick="skipNote()" style="background:#333;color:#888;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:14px;">拒绝备注</button>
     </div>
 </div>
 
