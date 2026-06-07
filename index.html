@@ -342,33 +342,17 @@ function renderUnavail() {
     }
     section.style.display = 'block';
     list.innerHTML = passPlayers.map(p => {
-        const note = p.note ? `<span style="color:#888;font-size:12px;margin-left:6px;">- ${p.note}</span>` : '';
-        const nameForJs = p.name.replace(/'/g, "\'");
+        const note = p.note ? ' <span style="color:#888;font-size:12px;margin-left:6px;">- ' + p.note + '</span>' : '';
         return '<div style="padding:6px 0;border-bottom:1px solid #222;font-size:14px;display:flex;justify-content:space-between;align-items:center;">' +
             '<span>' + p.name + note + '</span>' +
-            (p.note ? '<button style="background:none;border:1px solid #555;color:#888;border-radius:12px;padding:2px 10px;font-size:12px;cursor:pointer;" onclick="rejectNote(\'' + nameForJs + '\')'">拒绝备注</button>' : '') +
+            (p.note ? '<button class="reject-btn" data-name="' + p.name + '" style="background:none;border:1px solid #555;color:#888;border-radius:12px;padding:2px 10px;font-size:12px;cursor:pointer;">拒绝备注</button>' : '') +
         '</div>';
     }).join('');
+    // Event delegation for reject buttons
+    list.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.onclick = function() { rejectNote(this.dataset.name); };
+    });
 }
-function renderRank() {
-    const container = document.getElementById('rankList');
-    const voteCounts = {};
-    players.filter(p => p.vote).forEach(p => { voteCounts[p.vote] = (voteCounts[p.vote] || 0) + 1; });
-    // 输出所有有投票的游戏（包括不在预设列表里的）
-    const sorted = Object.entries(voteCounts).sort((a, b) => b[1] - a[1]);
-
-    if (sorted.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#555;padding:10px 0;">还没有投票～</div>';
-        return;
-    }
-
-    container.innerHTML = sorted.map(([game, count], i) => {
-        let cls = 'normal';
-        if (i === 0) cls = 'gold';
-        else if (i === 1) cls = 'silver';
-        else if (i === 2) cls = 'bronze';
-        return `<div class="rank-item"><div class="pos ${cls}">${i+1}</div><span class="gname">${game}</span><span class="gvotes">${count}票</span></div>`;
-    }).join('');
 }
 
 function renderPlayerList(play, undecided, pass) {
