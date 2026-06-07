@@ -268,7 +268,7 @@ function setMyName() {
     if (!name || name.length > 10) return;
     myName = name;
     localStorage.setItem('gn_my_name', name);
-    document.getElementById('nameBox').innerHTML = `<span class="saved">✅ 你是 ${name} <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[改名]</span></span>`;
+    document.getElementById('nameBox').innerHTML = `<span class="saved">✅ 你是 ${name} <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[修改ID]</span></span>`;
     loadData();
 }
 
@@ -466,40 +466,37 @@ async function confirmVote() {
     closeVoteModal();
 }
 
-// ======== 改名 ========
+// ======== 修改ID ========
 function showRename() {
-    document.getElementById('nameBox').innerHTML = \`
-        <input type="text" id="renameInput" placeholder="输入新名字" maxlength="10" style="padding:6px 12px;border-radius:8px;border:1px solid #333;background:#1a1a2e;color:#e0e0e0;font-size:14px;width:120px;outline:none;">
+    document.getElementById('nameBox').innerHTML = `
+        <input type="text" id="renameInput" placeholder="输入新ID" maxlength="10" style="padding:6px 12px;border-radius:8px;border:1px solid #333;background:#1a1a2e;color:#e0e0e0;font-size:14px;width:120px;outline:none;">
         <button onclick="confirmRename()" style="padding:6px 14px;border-radius:8px;border:none;background:#667eea;color:#fff;cursor:pointer;font-size:13px;">确定</button>
         <button onclick="cancelRename()" style="padding:6px 14px;border-radius:8px;border:none;background:#333;color:#aaa;cursor:pointer;font-size:13px;">取消</button>
-    \`;
+    `;
     document.getElementById('renameInput').focus();
 }
 
 function cancelRename() {
-    document.getElementById('nameBox').innerHTML = \`<span class="saved">✅ 你是 \${myName} <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[改名]</span></span>\`;
+    document.getElementById('nameBox').innerHTML = '<span class="saved">✅ 你是 ' + myName + ' <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[修改ID]</span></span>';
 }
 
 async function confirmRename() {
     const newName = document.getElementById('renameInput').value.trim();
     if (!newName || newName.length > 10) return;
     if (newName === myName) { cancelRename(); return; }
-    
+
     const today = getTodayStr();
-    // 删除旧名字的记录
     await _supabase.from('players').delete().eq('name', myName).eq('date', today);
-    // 用新名字插入
     const me = players.find(p => p.name === myName);
     const status = me ? me.status : 'undecided';
     const vote = me ? me.vote : null;
     await _supabase.from('players').insert({ name: newName, status, vote, date: today });
-    
-    // 更新本地状态
+
     players = players.filter(p => p.name !== myName);
     myName = newName;
     localStorage.setItem('gn_my_name', newName);
-    
-    document.getElementById('nameBox').innerHTML = \`<span class="saved">✅ 你是 \${newName} <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[改名]</span></span>\`;
+
+    document.getElementById('nameBox').innerHTML = '<span class="saved">✅ 你是 ' + newName + ' <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[修改ID]</span></span>';
     loadData();
 }
 
