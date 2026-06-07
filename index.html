@@ -4,18 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>今晚开黑？</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
-
         .container { max-width: 520px; margin: 0 auto; padding: 16px; }
 
-        /* 头部 */
         .header { text-align: center; padding: 24px 0 16px; }
         .header h1 { font-size: 26px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header .date { color: #888; font-size: 14px; margin-top: 4px; }
+        .header .my-name { margin-top: 10px; display: flex; gap: 8px; justify-content: center; }
+        .header .my-name input { padding: 6px 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a2e; color: #e0e0e0; font-size: 14px; width: 120px; outline: none; }
+        .header .my-name input:focus { border-color: #667eea; }
+        .header .my-name button { padding: 6px 14px; border-radius: 8px; border: none; background: #667eea; color: #fff; cursor: pointer; font-size: 13px; }
+        .header .my-name .saved { color: #4ade80; font-size: 13px; line-height: 34px; }
 
-        /* 统计卡片 */
         .stats { display: flex; gap: 12px; margin-bottom: 20px; }
         .stats .card { flex: 1; background: #1a1a2e; border-radius: 12px; padding: 14px; text-align: center; }
         .stats .num { font-size: 28px; font-weight: bold; color: #667eea; }
@@ -23,7 +26,6 @@
         .stats .num.off { color: #f87171; }
         .stats .label { font-size: 12px; color: #888; margin-top: 4px; }
 
-        /* 游戏投票排名 */
         .rank-section { background: #1a1a2e; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
         .rank-section .title { font-size: 15px; font-weight: bold; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         .rank-section .title .clear-btn { font-size: 12px; color: #888; cursor: pointer; background: none; border: none; }
@@ -38,34 +40,26 @@
         .rank-item .gname { flex: 1; font-size: 14px; }
         .rank-item .gvotes { font-size: 13px; color: #667eea; font-weight: bold; }
 
-        /* 朋友列表 */
-        .section-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .section-title .add-btn { color: #667eea; font-size: 13px; cursor: pointer; background: none; border: none; }
-        .section-title .add-btn:hover { color: #818cf8; }
-
+        .section-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; }
         .player { background: #1a1a2e; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
         .player .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; flex-shrink: 0; }
         .player .avatar.on { background: #1a3a2a; color: #4ade80; border: 2px solid #4ade80; }
         .player .avatar.off { background: #3a1a1a; color: #f87171; border: 2px solid #f87171; }
         .player .avatar.undecided { background: #2a2a3a; color: #888; border: 2px solid #444; }
-
         .player .info { flex: 1; min-width: 0; }
         .player .name { font-size: 15px; font-weight: bold; }
+        .player .name .me-tag { font-size: 11px; color: #667eea; margin-left: 6px; }
         .player .status { font-size: 12px; margin-top: 2px; }
         .player .status.on { color: #4ade80; }
         .player .status.off { color: #f87171; }
         .player .status.undecided { color: #888; }
-
         .player .actions { display: flex; gap: 8px; flex-shrink: 0; }
         .player .actions button { padding: 6px 16px; border-radius: 20px; border: none; font-size: 13px; cursor: pointer; transition: 0.2s; }
         .btn-play { background: #1a3a2a; color: #4ade80; border: 1px solid #4ade80 !important; }
         .btn-play:hover, .btn-play.active { background: #4ade80; color: #000; }
         .btn-pass { background: #3a1a1a; color: #f87171; border: 1px solid #f87171 !important; }
         .btn-pass:hover, .btn-pass.active { background: #f87171; color: #000; }
-        .player .btn-del { background: none; border: none; color: #555; font-size: 18px; cursor: pointer; padding: 4px; }
-        .player .btn-del:hover { color: #f87171; }
 
-        /* 投票弹窗 */
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; }
         .overlay.show { display: block; }
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #1a1a2e; border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; z-index: 101; }
@@ -81,16 +75,12 @@
         .modal .custom-input input { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; background: #0f0f1a; color: #e0e0e0; font-size: 14px; outline: none; }
         .modal .custom-input input:focus { border-color: #667eea; }
         .modal .custom-input button { padding: 8px 16px; border-radius: 8px; border: none; background: #667eea; color: #fff; cursor: pointer; }
-        .modal .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
-        .modal .modal-actions button { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
-        .modal .modal-actions .confirm { background: #667eea; color: #fff; }
-        .modal .modal-actions .confirm:hover { background: #818cf8; }
-        .modal .modal-actions .cancel { background: #333; color: #aaa; }
-        .modal .modal-actions .cancel:hover { color: #fff; }
-
-        /* 添加朋友弹窗 */
-        .modal input[type="text"] { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #0f0f1a; color: #e0e0e0; font-size: 15px; outline: none; }
-        .modal input[type="text"]:focus { border-color: #667eea; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+        .modal-actions button { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
+        .modal-actions .confirm { background: #667eea; color: #fff; }
+        .modal-actions .confirm:hover { background: #818cf8; }
+        .modal-actions .cancel { background: #333; color: #aaa; }
+        .modal-actions .cancel:hover { color: #fff; }
 
         .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
         .tag.live { background: #4ade80; color: #000; }
@@ -98,7 +88,6 @@
 
         .empty { text-align: center; padding: 40px 0; color: #555; font-size: 14px; }
 
-        /* 今日结论 */
         .conclusion { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center; }
         .conclusion .big { font-size: 22px; font-weight: bold; margin-bottom: 6px; }
         .conclusion .big.yes { color: #4ade80; }
@@ -106,49 +95,47 @@
         .conclusion .sub { font-size: 13px; color: #888; }
 
         .footer { text-align: center; padding: 20px 0; color: #444; font-size: 12px; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; }
     </style>
 </head>
 <body>
 
+<div class="toast" id="toast"></div>
+
 <div class="container">
-    <!-- 头部 -->
     <div class="header">
         <h1>今晚开黑？</h1>
         <div class="date" id="today"></div>
+        <div class="my-name" id="nameBox">
+            <input type="text" id="nameInput" placeholder="输入你的名字" maxlength="10">
+            <button onclick="setMyName()">确定</button>
+        </div>
     </div>
 
-    <!-- 今日结论 -->
     <div class="conclusion" id="conclusion">
-        <div class="big" id="conclusionText">正在统计...</div>
+        <div class="big" id="conclusionText">加载中...</div>
         <div class="sub" id="conclusionSub"></div>
     </div>
 
-    <!-- 统计卡片 -->
     <div class="stats">
-        <div class="card"><div class="num on" id="playCount">0</div><div class="label">今晚开战</div></div>
-        <div class="card"><div class="num off" id="passCount">0</div><div class="label">今天休战</div></div>
+        <div class="card"><div class="num on" id="playCount">0</div><div class="label">来的</div></div>
+        <div class="card"><div class="num off" id="passCount">0</div><div class="label">有事的</div></div>
         <div class="card"><div class="num" id="totalCount">0</div><div class="label">兄弟总数</div></div>
     </div>
 
-    <!-- 游戏排名 -->
     <div class="rank-section">
         <div class="title">
             <span>🎮 游戏投票排名</span>
-            <button class="clear-btn" onclick="clearVotes()">清空投票</button>
+            <button class="clear-btn" onclick="clearAllVotes()">清空投票</button>
         </div>
         <div id="rankList"></div>
     </div>
 
-    <!-- 朋友列表 -->
-    <div class="section-title">
-        <span>👥 兄弟们</span>
-        <button class="add-btn" onclick="showAddPlayer()">＋ 加兄弟</button>
-    </div>
+    <div class="section-title">👥 兄弟们</div>
     <div id="playerList"></div>
-    <div class="footer">数据保存在本地浏览器</div>
+    <div class="footer">数据实时同步，刷新页面自动更新</div>
 </div>
 
-<!-- 投票弹窗 -->
 <div class="overlay" id="voteOverlay" onclick="closeVoteModal()"></div>
 <div class="modal" id="voteModal">
     <h3 id="voteTitle">选择想玩的游戏</h3>
@@ -159,345 +146,334 @@
     </div>
     <div class="modal-actions">
         <button class="cancel" onclick="closeVoteModal()">取消</button>
-        <button class="confirm" onclick="confirmVote()">确定投票</button>
-    </div>
-</div>
-
-<!-- 加朋友弹窗 -->
-<div class="overlay" id="addOverlay" onclick="closeAddModal()"></div>
-<div class="modal" id="addModal">
-    <h3>加兄弟</h3>
-    <input type="text" id="newPlayerName" placeholder="输入名字..." maxlength="10">
-    <div class="modal-actions">
-        <button class="cancel" onclick="closeAddModal()">取消</button>
-        <button class="confirm" onclick="addPlayer()">确定</button>
+        <button class="confirm" onclick="confirmVote()">确定</button>
     </div>
 </div>
 
 <script>
-// ======== 数据 ========
-const STORAGE_KEY = "game_night_data";
-const DEFAULT_GAMES = ["REPO", "LOL", "瓦罗兰特", "CS2", "吃鸡", "永劫无间", "王者荣耀", "其他"];
+// ======== Supabase 初始化 ========
+const SUPABASE_URL = 'https://ebxaxxsbkcfhmdlueluy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVieGF4eHNia2NmaG1kbHVlbHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzQyMDEsImV4cCI6MjA5NjQxMDIwMX0.GRr1FMdfWIKS2IL_gCXuV6Oao3g8czTbmXwJyeSmb_E';
+const { createClient } = supabase;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let data = { players: {}, games: [...DEFAULT_GAMES], votes: {} };
-// players: { "张三": { status: "play"|"pass"|null, vote: "REPO"|null } }
-// games: ["REPO", "LOL", ...]
-// votes: { "REPO": ["张三", "李四"], "LOL": ["王五"] }
+// ======== 状态 ========
+let myName = localStorage.getItem('gn_my_name') || '';
+let players = [];
+let games = [];
+let votingPlayer = '';
 
-function loadData() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-        try {
-            const parsed = JSON.parse(raw);
-            data.players = parsed.players || {};
-            data.games = parsed.games && parsed.games.length ? parsed.games : [...DEFAULT_GAMES];
-            data.votes = parsed.votes || {};
-        } catch(e) { resetData(); }
-    }
+function getTodayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function resetData() {
-    data = { players: {}, games: [...DEFAULT_GAMES], votes: {} };
-}
-
-// ======== 今日日期 ========
-function getToday() {
+function getTodayDisplay() {
     const d = new Date();
     const week = ["日","一","二","三","四","五","六"];
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${week[d.getDay()]}`;
 }
 
-// ======== 统计 ========
-function getStats() {
-    let play = 0, pass = 0, total = 0;
-    Object.values(data.players).forEach(p => {
-        total++;
-        if (p.status === "play") play++;
-        else if (p.status === "pass") pass++;
-    });
-    return { play, pass, total };
+// ======== 从数据库加载数据 ========
+async function loadData() {
+    const today = getTodayStr();
+
+    // 加载今天的玩家
+    const { data: pData } = await _supabase.from('players').select('*').eq('date', today);
+    players = pData || [];
+
+    // 加载游戏列表
+    const { data: gData } = await _supabase.from('games').select('*').order('id');
+    games = gData || [];
+
+    // 确保自己存在
+    if (myName) {
+        const exists = players.find(p => p.name === myName);
+        if (!exists) {
+            const { data: newP } = await _supabase.from('players').insert({ name: myName, status: 'undecided', vote: null, date: today }).select();
+            if (newP) players = players.concat(newP);
+        }
+    }
+
+    refresh();
 }
 
-// ======== 渲染排名 ========
-function renderRank() {
-    const container = document.getElementById("rankList");
+// ======== 保存自己的状态 ========
+async function saveMyStatus(status) {
+    if (!myName) return;
+    const today = getTodayStr();
+    const { data } = await _supabase.from('players').upsert({ name: myName, status, date: today }).select();
+    if (data) {
+        const idx = players.findIndex(p => p.name === myName);
+        if (idx >= 0) players[idx] = data[0];
+        else players.push(data[0]);
+    }
+    refresh();
+}
+
+// ======== 保存投票 ========
+async function saveMyVote(vote) {
+    if (!myName) return;
+    const today = getTodayStr();
+    const { data } = await _supabase.from('players').upsert({ name: myName, status: 'play', vote, date: today }).select();
+    if (data) {
+        const idx = players.findIndex(p => p.name === myName);
+        if (idx >= 0) players[idx] = data[0];
+        else players.push(data[0]);
+    }
+    refresh();
+}
+
+// ======== 添加自定义游戏到数据库 ========
+async function addGameToDB(name) {
+    const { data } = await _supabase.from('games').insert({ name }).select();
+    if (data) games = games.concat(data);
+    refresh();
+}
+
+// ======== 删除玩家（只能删自己的） ========
+async function removeMyself() {
+    if (!myName) return;
+    const today = getTodayStr();
+    await _supabase.from('players').delete().eq('name', myName).eq('date', today);
+    players = players.filter(p => p.name !== myName);
+    localStorage.removeItem('gn_my_name');
+    myName = '';
+    document.getElementById('nameInput').value = '';
+    document.getElementById('nameBox').innerHTML = `
+        <input type="text" id="nameInput" placeholder="输入你的名字" maxlength="10">
+        <button onclick="setMyName()">确定</button>
+    `;
+    refresh();
+}
+
+// ======== 清空所有投票 ========
+async function clearAllVotes() {
+    if (!confirm('清空所有人的投票？')) return;
+    const today = getTodayStr();
+    const { data } = await _supabase.from('players').update({ vote: null }).eq('date', today).neq('status', 'pass').select();
+    if (data) {
+        data.forEach(u => {
+            const p = players.find(x => x.name === u.name);
+            if (p) p.vote = null;
+        });
+    }
+    refresh();
+}
+
+// ======== 设置名字 ========
+function setMyName() {
+    const input = document.getElementById('nameInput');
+    const name = input.value.trim();
+    if (!name || name.length > 10) return;
+    myName = name;
+    localStorage.setItem('gn_my_name', name);
+    document.getElementById('nameBox').innerHTML = `<span class="saved">✅ 你是 ${name}</span>`;
+    loadData();
+}
+
+// ======== 界面渲染 ========
+function refresh() {
+    document.getElementById('today').textContent = getTodayDisplay();
+
+    const play = players.filter(p => p.status === 'play');
+    const pass = players.filter(p => p.status === 'pass');
+    const undecided = players.filter(p => p.status === 'undecided' || !p.status);
+
+    document.getElementById('playCount').textContent = play.length;
+    document.getElementById('passCount').textContent = pass.length;
+    document.getElementById('totalCount').textContent = players.length;
+
+    // 结论
+    renderConclusion(play.length, pass.length);
+
+    // 排名
+    renderRank();
+
+    // 玩家列表
+    renderPlayerList(play, undecided, pass);
+}
+
+function renderConclusion(playCount, passCount) {
+    const big = document.getElementById('conclusionText');
+    const sub = document.getElementById('conclusionSub');
+
+    if (players.length === 0) {
+        big.textContent = '等人齐';
+        big.className = 'big';
+        sub.textContent = '输入名字加入';
+        return;
+    }
+
     const voteCounts = {};
-    Object.entries(data.votes).forEach(([game, voters]) => {
-        voteCounts[game] = voters.length;
-    });
-    // 有投票的游戏也加入列表（包括0票的）
-    data.games.forEach(g => {
-        if (!(g in voteCounts)) voteCounts[g] = 0;
-    });
-
+    players.filter(p => p.vote).forEach(p => { voteCounts[p.vote] = (voteCounts[p.vote] || 0) + 1; });
     const sorted = Object.entries(voteCounts).sort((a, b) => b[1] - a[1]);
-    const hasVotes = sorted.some(([, c]) => c > 0);
 
-    if (!hasVotes) {
+    if (playCount === 0) {
+        big.textContent = '今天都没空 😴';
+        big.className = 'big';
+        sub.textContent = '休养生息，明天再战';
+    } else if (playCount === 1) {
+        big.textContent = `就位1人，等你来战`;
+        big.className = 'big yes';
+        sub.textContent = sorted.length ? `目前想玩：${sorted[0][0]}` : '还没定游戏';
+    } else {
+        big.textContent = `🔥 ${playCount}人到位，开整！`;
+        big.className = 'big yes';
+        sub.textContent = sorted.length ? `最高票游戏：${sorted[0][0]}（${sorted[0][1]}票）` : '还没定游戏';
+    }
+}
+
+function renderRank() {
+    const container = document.getElementById('rankList');
+    const voteCounts = {};
+    players.filter(p => p.vote).forEach(p => { voteCounts[p.vote] = (voteCounts[p.vote] || 0) + 1; });
+    // 输出所有有投票的游戏（包括不在预设列表里的）
+    const sorted = Object.entries(voteCounts).sort((a, b) => b[1] - a[1]);
+
+    if (sorted.length === 0) {
         container.innerHTML = '<div style="text-align:center;color:#555;padding:10px 0;">还没有投票～</div>';
         return;
     }
 
     container.innerHTML = sorted.map(([game, count], i) => {
-        if (count === 0) return "";
-        let posClass = "normal", label = i + 1;
-        if (i === 0) posClass = "gold";
-        else if (i === 1) posClass = "silver";
-        else if (i === 2) posClass = "bronze";
-        return `
-            <div class="rank-item">
-                <div class="pos ${posClass}">${label}</div>
-                <span class="gname">${game}</span>
-                <span class="gvotes">${count}票</span>
-            </div>
-        `;
-    }).join("");
+        let cls = 'normal';
+        if (i === 0) cls = 'gold';
+        else if (i === 1) cls = 'silver';
+        else if (i === 2) cls = 'bronze';
+        return `<div class="rank-item"><div class="pos ${cls}">${i+1}</div><span class="gname">${game}</span><span class="gvotes">${count}票</span></div>`;
+    }).join('');
 }
 
-// ======== 渲染朋友列表 ========
-function renderPlayers() {
-    const container = document.getElementById("playerList");
-    const entries = Object.entries(data.players);
-
-    if (entries.length === 0) {
-        container.innerHTML = '<div class="empty">还没有兄弟，点右上角加人</div>';
+function renderPlayerList(play, undecided, pass) {
+    const container = document.getElementById('playerList');
+    if (players.length === 0) {
+        container.innerHTML = '<div class="empty">输入名字加入今晚的开黑队伍</div>';
         return;
     }
 
-    // 排序：玩了排前面，未决定排中间，不玩排后面
-    const order = { "play": 0, null: 1, "pass": 2 };
-    entries.sort((a, b) => order[a[1].status] - order[b[1].status]);
-
-    container.innerHTML = entries.map(([name, p]) => {
-        const statusText = p.status === "play" ? "今晚开战" : p.status === "pass" ? "今天休战" : "还没定";
-        const statusClass = p.status === "play" ? "on" : p.status === "pass" ? "off" : "undecided";
-        const avatarClass = p.status === "play" ? "on" : p.status === "pass" ? "off" : "undecided";
-        const initials = name.charAt(0);
-        const voteTag = p.vote ? `<span class="tag voted">🎮 ${p.vote}</span>` : "";
+    const sorted = [...play, ...undecided, ...pass];
+    container.innerHTML = sorted.map(p => {
+        const isMe = p.name === myName;
+        const statusText = p.status === 'play' ? '来' : p.status === 'pass' ? '有事' : '还没定';
+        const stCls = p.status === 'play' ? 'on' : p.status === 'pass' ? 'off' : 'undecided';
+        const avCls = p.status === 'play' ? 'on' : p.status === 'pass' ? 'off' : 'undecided';
+        const voteTag = p.vote ? `<span class="tag voted">🎮 ${p.vote}</span>` : '';
+        const meTag = isMe ? '<span class="me-tag">（我）</span>' : '';
+        const initials = p.name.charAt(0);
 
         return `
             <div class="player">
-                <div class="avatar ${avatarClass}">${initials}</div>
+                <div class="avatar ${avCls}">${initials}</div>
                 <div class="info">
-                    <div class="name">${name} ${voteTag}</div>
-                    <div class="status ${statusClass}">${statusText}</div>
+                    <div class="name">${p.name}${meTag}${voteTag}</div>
+                    <div class="status ${stCls}">${statusText}</div>
                 </div>
                 <div class="actions">
-                    <button class="btn-play ${p.status === 'play' ? 'active' : ''}" onclick="setStatus('${name}','play')">开战</button>
-                    <button class="btn-pass ${p.status === 'pass' ? 'active' : ''}" onclick="setStatus('${name}','pass')">休战</button>
-                    <button class="btn-del" onclick="delPlayer('${name}')">✕</button>
+                    ${isMe ? `
+                        ${p.vote ? `<button style="padding:6px 10px;border-radius:20px;border:1px solid #f87171;background:#3a1a1a;color:#f87171;font-size:12px;cursor:pointer;" onclick="revokeVote()">撤销</button>` : ''}
+                        <button class="btn-play ${p.status === 'play' ? 'active' : ''}" onclick="setStatus('play')">来</button>
+                        <button class="btn-pass ${p.status === 'pass' ? 'active' : ''}" onclick="setStatus('pass')">有事</button>
+                    ` : ''}
                 </div>
             </div>
         `;
-    }).join("");
+    }).join('');
 }
 
-// ======== 渲染结论 ========
-function renderConclusion() {
-    const { play, pass, total } = getStats();
-    const big = document.getElementById("conclusionText");
-    const sub = document.getElementById("conclusionSub");
-
-    if (total === 0) {
-        big.textContent = "等人齐";
-        big.className = "big";
-        sub.textContent = "还没有兄弟加入";
-        return;
-    }
-
-    // 统计投票
-    const voteCounts = {};
-    Object.values(data.players).forEach(p => {
-        if (p.vote) voteCounts[p.vote] = (voteCounts[p.vote] || 0) + 1;
-    });
-    const sorted = Object.entries(voteCounts).sort((a, b) => b[1] - a[1]);
-
-    if (play === 0) {
-        big.textContent = "今晚没人打游戏 😴";
-        big.className = "big";
-        sub.textContent = "休养生息，明天再战";
-    } else if (play === 1) {
-        big.textContent = "就位1人，等你来战";
-        big.className = "big yes";
-        const topGame = sorted.length ? sorted[0][0] : "还没定游戏";
-        sub.textContent = `目前想玩：${topGame}`;
-    } else {
-        big.textContent = `🔥 ${play}人已就位，开整！`;
-        big.className = "big yes";
-        const topGame = sorted.length ? sorted[0][0] : "还没定游戏";
-        sub.textContent = `最高票游戏：${topGame}（${sorted.length ? sorted[0][1] : 0}票）`;
+// ======== 设置自己状态 ========
+function setStatus(status) {
+    if (!myName) return;
+    saveMyStatus(status);
+    if (status === 'play') {
+        setTimeout(() => showVoteModal(), 300);
     }
 }
 
-// ======== 更新所有UI ========
-function refresh() {
-    const { play, pass, total } = getStats();
-    document.getElementById("playCount").textContent = play;
-    document.getElementById("passCount").textContent = pass;
-    document.getElementById("totalCount").textContent = total;
-    document.getElementById("today").textContent = getToday();
-    renderRank();
-    renderPlayers();
-    renderConclusion();
-}
-
-// ======== 设置状态 ========
-function setStatus(name, status) {
-    const player = data.players[name];
-    if (!player) return;
-
-    if (status === "play") {
-        player.status = "play";
-        saveData();
-        refresh();
-        // 弹出投票
-        showVoteModal(name);
-    } else {
-        player.status = status;
-        if (status === "pass") player.vote = null;
-        saveData();
-        refresh();
+// ======== 撤销投票 ========
+async function revokeVote() {
+    if (!myName) return;
+    const today = getTodayStr();
+    const { data } = await _supabase.from('players').update({ vote: null }).eq('name', myName).eq('date', today).select();
+    if (data) {
+        const p = players.find(x => x.name === myName);
+        if (p) p.vote = null;
     }
+    refresh();
 }
 
-// ======== 投票 ========
-let votingPlayer = null;
-
-function showVoteModal(name) {
-    votingPlayer = name;
-    document.getElementById("voteTitle").textContent = `${name} 想玩什么？`;
+// ======== 投票弹窗 ========
+function showVoteModal() {
+    votingPlayer = myName;
+    document.getElementById('voteTitle').textContent = '你想玩什么？';
     renderVoteGames();
-    document.getElementById("voteOverlay").classList.add("show");
-    document.getElementById("voteModal").classList.add("show");
+    document.getElementById('voteOverlay').classList.add('show');
+    document.getElementById('voteModal').classList.add('show');
 }
 
 function closeVoteModal() {
-    votingPlayer = null;
-    document.getElementById("voteOverlay").classList.remove("show");
-    document.getElementById("voteModal").classList.remove("show");
+    votingPlayer = '';
+    document.getElementById('voteOverlay').classList.remove('show');
+    document.getElementById('voteModal').classList.remove('show');
 }
 
 function renderVoteGames() {
-    const container = document.getElementById("voteGames");
-    const currentVote = votingPlayer ? (data.players[votingPlayer]?.vote || null) : null;
+    const container = document.getElementById('voteGames');
+    const me = players.find(p => p.name === myName);
+    const cv = me ? me.vote : null;
 
-    container.innerHTML = data.games.map(g => {
-        const voters = data.votes[g] || [];
-        const checked = currentVote === g ? "checked" : "";
+    container.innerHTML = games.map(g => {
+        const voters = players.filter(p => p.vote === g.name);
         return `
             <div class="game-option">
-                <input type="radio" name="voteGame" value="${g}" id="vg_${g}" ${checked}>
-                <label for="vg_${g}">${g}</label>
+                <input type="radio" name="voteGame" value="${g.name}" id="vg_${g.id}" ${cv === g.name ? 'checked' : ''}>
+                <label for="vg_${g.id}">${g.name}</label>
                 <span class="gvotes-sm">${voters.length}票</span>
             </div>
         `;
-    }).join("");
+    }).join('');
 }
 
-function addCustomGame() {
-    const input = document.getElementById("customGame");
-    const game = input.value.trim();
-    if (!game) return;
-    if (data.games.includes(game)) {
-        // 直接选中已有的
-        document.querySelector(`input[value="${game}"]`)?.click();
-        input.value = "";
-        return;
-    }
-    data.games.push(game);
-    // 自动勾选
-    renderVoteGames();
-    document.querySelector(`input[value="${game}"]`).checked = true;
-    input.value = "";
-    saveData();
-}
-
-function confirmVote() {
-    if (!votingPlayer) return;
-    const selected = document.querySelector('input[name="voteGame"]:checked');
-    if (!selected) {
-        closeVoteModal();
-        return;
-    }
-    const game = selected.value;
-
-    // 移除之前投票
-    const playerData = data.players[votingPlayer];
-    if (playerData.vote) {
-        const oldVoters = data.votes[playerData.vote];
-        if (oldVoters) {
-            data.votes[playerData.vote] = oldVoters.filter(v => v !== votingPlayer);
-            if (data.votes[playerData.vote].length === 0) delete data.votes[playerData.vote];
-        }
-    }
-
-    // 添加新投票
-    playerData.vote = game;
-    if (!data.votes[game]) data.votes[game] = [];
-    if (!data.votes[game].includes(votingPlayer)) data.votes[game].push(votingPlayer);
-
-    saveData();
-    closeVoteModal();
-    refresh();
-}
-
-// ======== 添加/删除朋友 ========
-function showAddPlayer() {
-    document.getElementById("newPlayerName").value = "";
-    document.getElementById("addOverlay").classList.add("show");
-    document.getElementById("addModal").classList.add("show");
-}
-
-function closeAddModal() {
-    document.getElementById("addOverlay").classList.remove("show");
-    document.getElementById("addModal").classList.remove("show");
-}
-
-function addPlayer() {
-    const input = document.getElementById("newPlayerName");
+async function addCustomGame() {
+    const input = document.getElementById('customGame');
     const name = input.value.trim();
-    if (!name || name.length > 10) return;
-    if (data.players[name]) {
-        alert("这位兄弟已经在名单里了");
+    if (!name) return;
+    if (games.find(g => g.name === name)) {
+        document.querySelector(`input[value="${name}"]`)?.click();
+        input.value = '';
         return;
     }
-    data.players[name] = { status: null, vote: null };
-    saveData();
-    closeAddModal();
-    refresh();
+    await addGameToDB(name);
+    renderVoteGames();
+    document.querySelector(`input[value="${name}"]`).checked = true;
+    input.value = '';
 }
 
-function delPlayer(name) {
-    if (!confirm(`移除 ${name}？`)) return;
-    const player = data.players[name];
-    // 清理投票
-    if (player.vote && data.votes[player.vote]) {
-        data.votes[player.vote] = data.votes[player.vote].filter(v => v !== name);
-        if (data.votes[player.vote].length === 0) delete data.votes[player.vote];
-    }
-    delete data.players[name];
-    saveData();
-    refresh();
+async function confirmVote() {
+    const sel = document.querySelector('input[name="voteGame"]:checked');
+    if (!sel) { closeVoteModal(); return; }
+    await saveMyVote(sel.value);
+    closeVoteModal();
 }
 
-// ======== 清空投票 ========
-function clearVotes() {
-    if (!confirm("清空所有投票？")) return;
-    data.votes = {};
-    Object.keys(data.players).forEach(name => {
-        data.players[name].vote = null;
-    });
-    saveData();
+// ======== 自动刷新（每5秒拉最新数据） ========
+setInterval(async () => {
+    if (!myName) return;
+    const today = getTodayStr();
+    const [pRes, gRes] = await Promise.all([
+        _supabase.from('players').select('*').eq('date', today),
+        _supabase.from('games').select('*').order('id')
+    ]);
+    if (pRes.data) players = pRes.data;
+    if (gRes.data) games = gRes.data;
     refresh();
-}
+}, 5000);
 
 // ======== 初始化 ========
+if (myName) {
+    document.getElementById('nameBox').innerHTML = `<span class="saved">✅ 你是 ${myName}</span>`;
+}
 loadData();
-refresh();
 </script>
 </body>
 </html>
