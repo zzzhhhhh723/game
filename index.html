@@ -499,7 +499,7 @@ async function confirmVote() {
 
 // ======== 备注弹窗 ========
 
-async async function skipNote() {
+async function skipNote() {
     await saveMyStatus('pass', '');
     closeNoteModal();
 }
@@ -516,7 +516,7 @@ function closeNoteModal() {
     document.getElementById('noteModal').classList.remove('show');
 }
 
-async async async function rejectNote(name) {
+async function rejectNote(name) {
     if (!confirm('确定拒绝 ' + name + ' 的备注？')) return;
     const today = getTodayStr();
     await _supabase.from('players').update({ note: '' }).eq('name', name).eq('date', today);
