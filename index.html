@@ -302,6 +302,27 @@ function refresh() {
     renderPlayerList(play, undecided, pass);
 }
 
+
+function renderRank() {
+    const container = document.getElementById('rankList');
+    const voteCounts = {};
+    players.filter(p => p.vote).forEach(p => { voteCounts[p.vote] = (voteCounts[p.vote] || 0) + 1; });
+    const sorted = Object.entries(voteCounts).sort((a, b) => b[1] - a[1]);
+
+    if (sorted.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#555;padding:10px 0;">还没有投票～</div>';
+        return;
+    }
+
+    container.innerHTML = sorted.map(([game, count], i) => {
+        let cls = 'normal';
+        if (i === 0) cls = 'gold';
+        else if (i === 1) cls = 'silver';
+        else if (i === 2) cls = 'bronze';
+        return '<div class="rank-item"><div class="pos ' + cls + '">' + (i+1) + '</div><span class="gname">' + game + '</span><span class="gvotes">' + count + '票</span></div>';
+    }).join('');
+}
+
 function renderConclusion(playCount, passCount) {
     const big = document.getElementById('conclusionText');
     const sub = document.getElementById('conclusionSub');
