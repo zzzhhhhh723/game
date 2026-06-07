@@ -579,10 +579,15 @@ setInterval(async () => {
 }, 5000);
 
 // ======== 初始化 ========
-if (myName) {
-    document.getElementById('nameBox').innerHTML = `<span class="saved">✅ 你是 ${myName} <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[修改名称]</span></span>`;
-}
-loadData();
+(async function init() {
+    if (myName) {
+        document.getElementById('nameBox').innerHTML = `<span class="saved">✅ 你是 ${myName} <span style="color:#667eea;cursor:pointer;font-size:12px;margin-left:8px;" onclick="showRename()">[修改名称]</span></span>`;
+    }
+    try { await loadData(); } catch(e) {
+        console.error('Init error:', e);
+        document.getElementById('conclusionText').textContent = '出错了，刷新试试';
+    }
+})();
 </script>
 <!-- 备注弹窗 -->
 <div class="overlay" id="noteOverlay" onclick="closeNoteModal()"></div>
