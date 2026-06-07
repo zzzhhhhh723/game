@@ -545,5 +545,17 @@ if (myName) {
 }
 loadData();
 </script>
+<!-- 备注弹窗 -->
+<div class="overlay" id="noteOverlay" onclick="closeNoteModal()"></div>
+<div class="modal" id="noteModal">
+    <h3>备注</h3>
+    <p style="color:#888;font-size:13px;margin-bottom:12px;">告诉大家为什么今天来不了</p>
+    <input type="text" id="noteInput" placeholder="加班、陪女朋友、睡觉..." maxlength="30" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid #333;background:#0f0f1a;color:#e0e0e0;font-size:15px;outline:none;">
+    <div class="modal-actions">
+        <button class="cancel" onclick="closeNoteModal()">取消</button>
+        <button class="confirm" onclick="confirmNote()">确定</button>
+    </div>
+</div>
+
 </body>
 </html>
